@@ -1,180 +1,504 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XOFIX ANTIVOL - Terminal de Crise</title>
+    <title>XOFIX — Centre de Gestion Antivol</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #060913;
-            color: #e2e8f0;
-            margin: 0; padding: 20px;
-            display: flex; flex-direction: column; align-items: center;
-            min-height: 100vh; box-sizing: border-box;
-        }
-        header { text-align: center; margin-bottom: 15px; }
-        h1 {
-            background: linear-gradient(135deg, #d4af37 0%, #f3e5ab 50%, #aa7c11 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 3px;
-        }
-        .subtitle { color: #94a3b8; font-size: 11px; letter-spacing: 2px; margin-top: 2px; }
-        
-        .dashboard-grid {
-            display: flex; flex-direction: row; gap: 20px;
-            width: 100%; max-width: 1200px; min-height: 550px; height: 75vh; margin-top: 10px;
-        }
-        #map-container {
-            flex: 2; border: 2px solid #aa7c11; border-radius: 12px;
-            overflow: hidden; box-shadow: 0 0 25px rgba(212, 175, 55, 0.1);
-            position: relative; min-height: 500px; /* Force l'affichage vertical */
-        }
-        #map { width: 100%; height: 100%; min-height: 500px; background-color: #0b0f19; }
-        
-        .control-panel {
-            flex: 1; background-color: #0f1424; border: 1px solid #aa7c11;
-            border-radius: 12px; padding: 20px; display: flex; flex-direction: column;
-            justify-content: space-between; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-        
-        .widget {
-            background-color: #161f38; border: 1px solid #222f54;
-            border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 15px;
-        }
-        .widget-title { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
-        .widget-value { font-size: 28px; font-weight: bold; color: #fff; margin-top: 5px; }
-        
-        .status-badge {
-            padding: 8px; border-radius: 6px; font-weight: bold; font-size: 13px;
-            letter-spacing: 1px; text-transform: uppercase; text-align: center;
-        }
-        .status-safe { background-color: rgba(4, 120, 87, 0.2); color: #34d399; border: 1px solid #047857; }
-        .status-alarm { 
-            background-color: rgba(185, 28, 28, 0.3); color: #f87171; border: 1px solid #b91c1c;
-            animation: flash 1s infinite alternate;
-        }
-        
-        @keyframes flash {
-            from { box-shadow: 0 0 4px #b91c1c; }
-            to { box-shadow: 0 0 16px #b91c1c; }
+        :root {
+            --bg-main:       #f8f9fa; /* Fond clair, propre et institutionnel */
+            --bg-sidebar:    #ffffff; /* Sidebar blanche épurée */
+            --bg-card:       #ffffff;
+            --border-color:  #e9ecef;
+            --text-main:     #212529; /* Texte sombre naturel */
+            --text-muted:    #6c757d;
+            --gold-light:    #f9f6f0;
+            --gold-primary:  #c5a059; /* L'Or élégant de l'identité XOFIX */
+            --gold-gradient: linear-gradient(135deg, #dfba73 0%, #c5a059 100%);
+            --danger:        #dc3545;
+            --success:       #198754;
+            --font-main:     'Plus Jakarta Sans', sans-serif;
         }
 
-        .btn-action {
-            background: linear-gradient(135deg, #aa7c11 0%, #d4af37 100%);
-            color: #060913; border: none; padding: 12px; border-radius: 6px;
-            font-weight: bold; cursor: pointer; text-transform: uppercase;
-            letter-spacing: 1px; transition: 0.3s; margin-top: 10px;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg-main);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
         }
-        .btn-action:hover { transform: scale(1.02); box-shadow: 0 0 15px rgba(212,175,55,0.4); }
+
+        /* ════════════════════════════════════════════
+           SIDEBAR ULTRA-MODERNE
+        ════════════════════════════════════════════ */
+        .sidebar {
+            width: 360px;
+            min-width: 360px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 500;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
+        }
+
+        /* En-tête de Marque / Logo */
+        .brand-header {
+            padding: 30px 24px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .brand-logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        /* Emplacement pour ton logo XOFIX */
+        .brand-logo-img {
+            width: 42px;
+            height: 42px;
+            object-fit: contain;
+        }
+
+        .brand-title {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            background: linear-gradient(90deg, #aa7c11, #d4af37, #aa7c11);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--gold-light);
+            border: 1px solid rgba(197, 160, 89, 0.2);
+            color: #947133;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        .status-badge .dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--gold-primary);
+        }
+
+        /* Corps de la Sidebar */
+        .sidebar-body {
+            padding: 24px;
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+        }
+
+        /* Cartes d'information épurées */
+        .info-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.01);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+        .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .info-row:first-child { padding-top: 0; }
+
+        .label { color: var(--text-muted); font-weight: 500; }
+        .value { color: var(--text-main); font-weight: 600; }
+        .value.highlight { color: var(--gold-primary); }
+        .value.status-alert { color: var(--danger); font-weight: 700; }
+
+        /* Grille d'actions épurée */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px 10px;
+            font-family: var(--font-main);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn:hover {
+            border-color: var(--gold-primary);
+            background: var(--gold-light);
+            color: var(--gold-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(197,160,89,0.08);
+        }
+        .btn:active { transform: translateY(0); }
+        
+        .btn-icon { font-size: 20px; }
+
+        .btn-main-action {
+            grid-column: 1 / -1;
+            background: var(--gold-gradient);
+            color: white;
+            border: none;
+            padding: 16px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 16px rgba(197, 160, 89, 0.25);
+        }
+        .btn-main-action:hover {
+            background: linear-gradient(135deg, #caa151 0%, #ab8237 100%);
+            color: white;
+            box-shadow: 0 6px 20px rgba(197, 160, 89, 0.35);
+        }
+
+        /* Pied de page de la Sidebar */
+        .sidebar-footer {
+            padding: 20px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fafbfc;
+        }
+        .admin-profile { display: flex; flex-direction: column; }
+        .admin-name { font-size: 14px; font-weight: 600; color: var(--text-main); }
+        .admin-role { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+        
+        .btn-logout {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .btn-logout:hover { border-color: var(--danger); color: var(--danger); background: #fff5f5; }
+
+        /* ════════════════════════════════════════════
+           ZONE DE LA CARTE VISUELLE
+        ════════════════════════════════════════════ */
+        .map-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Barre supérieure de la carte */
+        .map-topbar {
+            background: rgba(255, 255, 255, 0.95);
+            border-bottom: 1px solid var(--border-color);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            z-index: 400;
+        }
+        
+        .telemetry-summary {
+            display: flex;
+            gap: 30px;
+        }
+        .tel-item { display: flex; flex-direction: column; }
+        .tel-label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 2px; }
+        .tel-val { font-size: 16px; font-weight: 700; color: var(--text-main); }
+        .tel-val.gold { color: var(--gold-primary); }
+
+        .map-controls { margin-left: auto; display: flex; gap: 8px; }
+        .control-btn {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .control-btn:hover { border-color: var(--gold-primary); color: var(--gold-primary); }
+        .control-btn.active { background: var(--gold-light); border-color: var(--gold-primary); color: var(--gold-primary); }
+
+        #map { flex: 1; background: #e5e9f0; }
+
+        /* Toast notifications épurées */
+        #notification-toast {
+            position: fixed;
+            top: 24px; right: 24px;
+            background: #ffffff;
+            border-left: 4px solid var(--gold-primary);
+            border-radius: 8px;
+            padding: 16px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+            z-index: 9999;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+        #notification-toast.show { display: block; }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>XOFIX</h1>
-        <div class="subtitle">POWERED BY LIGHT — MODULE INTERCEPTION LIVE</div>
-    </header>
-
-    <div class="dashboard-grid">
-        <div id="map-container">
-            <div id="map"></div>
+<div class="sidebar">
+    <div class="brand-header">
+        <div class="brand-logo-area">
+            <img class="brand-logo-img" src="/static/logo.png" alt="XOFIX" onerror="this.style.display='none'">
+            <div class="brand-title">XOFIX</div>
         </div>
-        
-        <div class="control-panel">
-            <div>
-                <div id="main-status" class="status-badge status-safe">
-                    Flux GPS Sécurisé
-                </div>
-                
-                <div class="widget" style="margin-top: 20px;">
-                    <div class="widget-title">Vélocité de la Cible</div>
-                    <div class="widget-value" id="speed-value">0 <span style="font-size: 16px; color:#94a3b8;">km/h</span></div>
-                </div>
-
-                <div class="widget">
-                    <div class="widget-title">Coordonnées Actuelles</div>
-                    <div id="geo-coords" style="font-size: 12px; color: #cbd5e1; margin-top: 8px; font-family: monospace;">
-                        En attente de synchronisation...
-                    </div>
-                </div>
-            </div>
-            
-            <button class="btn-action" onclick="declencherAlerte()">Verrouiller l'appareil</button>
+        <div class="brand-sub">Ingénierie de Précision</div>
+        <div class="status-badge">
+            <div class="dot"></div>
+            Console d'Administration
         </div>
     </div>
 
-    <script>
-        const map = L.map('map').setView([6.1375, 1.2125], 14);
+    <div class="sidebar-body">
+        <div>
+            <div class="section-title">Appareil & Client</div>
+            <div class="info-card">
+                <div class="info-row">
+                    <span class="label">Propriétaire</span>
+                    <span class="value" id="client-name">Chargement…</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Numéro IMEI</span>
+                    <span class="value" id="client-imei">— — —</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Modèle détecté</span>
+                    <span class="value highlight" id="client-model">Détection…</span>
+                </div>
+            </div>
+        </div>
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; XOFIX'
-        }).addTo(map);
+        <div>
+            <div class="section-title">Localisation & État</div>
+            <div class="info-card">
+                <div class="info-row">
+                    <span class="label">Statut système</span>
+                    <span class="value status-alert" id="client-status">RECHERCHE EN COURS</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Dernière mise à jour</span>
+                    <span class="value" id="client-time">--:--:--</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Batterie restante</span>
+                    <span class="value" id="client-battery">--%</span>
+                </div>
+            </div>
+        </div>
 
-        // Forcer Leaflet à recalculer sa taille dès l'initialisation
-        setTimeout(() => { map.invalidateSize(); }, 200);
+        <div>
+            <div class="section-title">Commandes à distance</div>
+            <div class="actions-grid">
+                <button class="btn" onclick="declencherSirene()">
+                    <span class="btn-icon">🔊</span>Alerte Sonore
+                </button>
+                <button class="btn" onclick="declencherVibration()">
+                    <span class="btn-icon">📳</span>Vibrer
+                </button>
+                <button class="btn btn-main-action" onclick="bloquerAppareil()">
+                    🔒 Sécuriser l'appareil
+                </button>
+            </div>
+        </div>
+    </div>
 
-        let marqueurAppareil = null;
-        let ligneTrajet = null;
+    <div class="sidebar-footer">
+        <div class="admin-profile">
+            <span class="admin-name">Superviseur XOFIX</span>
+            <span class="admin-role">Accès Autorisé</span>
+        </div>
+        <a href="/logout" class="btn-logout">Quitter</a>
+    </div>
+</div>
 
-        function actualiserConsoleXOFIX() {
-            fetch('/api/history')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.error) return;
+<div class="map-container">
+    <div class="map-topbar">
+        <div class="telemetry-summary">
+            <div class="tel-item">
+                <span class="tel-label">Vitesse de déplacement</span>
+                <span class="tel-val gold" id="top-speed">0.0 km/h</span>
+            </div>
+            <div class="tel-item">
+                <span class="tel-label">Coordonnées actuelles</span>
+                <span class="tel-val" id="top-coords">---.------ , ---.------</span>
+            </div>
+        </div>
+        <div class="map-controls">
+            <button class="control-btn active" id="btn-trace" onclick="toggleTrace()">Afficher le tracé</button>
+            <button class="control-btn" onclick="centrerCarte()">Centrer sur la cible</button>
+        </div>
+    </div>
 
-                    const lat = data.derniere_position.latitude;
-                    const lon = data.derniere_position.longitude;
-                    const vitesse = data.vitesse_kmh;
+    <div id="map"></div>
+</div>
 
-                    if (!marqueurAppareil) {
-                        marqueurAppareil = L.marker([lat, lon]).addTo(map)
-                            .bindPopup('<b style="color:#aa7c11;">Cible XOFIX Active</b>').openPopup();
-                    } else {
-                        marqueurAppareil.setLatLng([lat, lon]);
-                    }
-                    map.panTo([lat, lon]);
+<div id="notification-toast"></div>
 
-                    const coordonneesLigne = data.historique_trajet.map(p => [p.latitude, p.longitude]);
-                    
-                    if (!ligneTrajet) {
-                        ligneTrajet = L.polyline(coordonneesLigne, {
-                            color: '#d4af37',
-                            weight: 4,
-                            opacity: 0.9,
-                            lineJoin: 'round'
-                        }).addTo(map);
-                    } else {
-                        ligneTrajet.setLatLngs(coordonneesLigne);
-                    }
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const REFRESH_INTERVAL = 4000;
+    let traceActive = true;
+    let marker = null;
+    let historyPoints = [];
 
-                    document.getElementById('speed-value').innerHTML = `${vitesse} <span style="font-size: 16px; color:#94a3b8;">km/h</span>`;
-                    const badge = document.getElementById('main-status');
-                    
-                    if (vitesse > 20) {
-                        badge.innerText = "ALERTE : FUITE EN COURS";
-                        badge.className = "status-badge status-alarm";
-                    } else if (vitesse > 0) {
-                        badge.innerText = "Déplacement suspect (A pied)";
-                        badge.className = "status-badge status-alarm";
-                    } else {
-                        badge.innerText = "Cible Immobile";
-                        badge.className = "status-badge status-safe";
-                    }
+    const map = L.map('map', { zoomControl: true }).setView([6.1372, 1.2126], 14);
 
-                    document.getElementById('geo-coords').innerHTML = `Lat: ${lat}<br>Lon: ${lon}<br>MAJ: ${data.derniere_position.timestamp}`;
-                })
-                .catch(err => console.error("Erreur de flux XOFIX:", err));
-        }
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        maxZoom: 19
+    }).addTo(map);
 
-        function declencherAlerte() {
-            alert("🔒 Commande XOFIX envoyée : Écran verrouillé à distance, haut-parleur activé au maximum !");
-        }
+    const polyline = L.polyline([], {
+        color: '#c5a059',
+        weight: 4,
+        lineJoin: 'round'
+    }).addTo(map);
 
-        setInterval(actualiserConsoleXOFIX, 3000);
-        actualiserConsoleXOFIX();
-    </script>
+    function showToast(msg) {
+        const t = document.getElementById('notification-toast');
+        t.textContent = msg;
+        t.className = 'show';
+        setTimeout(() => { t.className = ''; }, 3500);
+    }
+
+    function actualiserIntel() {
+        fetch('/api/history')
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) return;
+
+            const speed = parseFloat(data.vitesse_kmh) || 0;
+            document.getElementById('top-speed').textContent = speed.toFixed(1) + ' km/h';
+
+            if (data.derniere_position) {
+                const pos = data.derniere_position;
+                const lat = parseFloat(pos.latitude);
+                const lon = parseFloat(pos.longitude);
+                const ts  = pos.timestamp || '';
+
+                document.getElementById('client-time').textContent = ts.split(' ')[1] || '--:--:--';
+                document.getElementById('top-coords').textContent = lat.toFixed(5) + ' , ' + lon.toFixed(5);
+                document.getElementById('client-status').textContent = 'POSITION ENREGISTRÉE';
+                document.getElementById('client-status').style.color = 'var(--success)';
+
+                if (pos.battery !== undefined) {
+                    document.getElementById('client-battery').textContent = Math.round(pos.battery) + '%';
+                }
+
+                const currentLatLng = [lat, lon];
+
+                if (!marker) {
+                    marker = L.marker(currentLatLng).addTo(map)
+                        .bindPopup('<b>Appareil Localisé</b><br>' + ts)
+                        .openPopup();
+                    map.setView(currentLatLng, 16);
+                } else {
+                    marker.setLatLng(currentLatLng);
+                }
+
+                if (traceActive) {
+                    polyline.addLatLng(currentLatLng);
+                }
+            }
+        }).catch(err => console.log("Awaiting connection..."));
+    }
+
+    function toggleTrace() {
+        traceActive = !traceActive;
+        const btn = document.getElementById('btn-trace');
+        btn.classList.toggle('active', traceActive);
+        if(!traceActive) polyline.setLatLngs([]);
+        showToast(traceActive ? 'Affichage du parcours activé' : 'Historique du tracé masqué');
+    }
+
+    function centrerCarte() {
+        if (marker) map.setView(marker.getLatLng(), 16);
+        else showToast('Aucune position captée pour le moment');
+    }
+
+    function declencherSirene() {
+        showToast('🔊 Commande d\'alerte sonore transmise à l\'appareil');
+        fetch('/api/command', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'alarm'}) }).catch(()=>{});
+    }
+
+    function declencherVibration() {
+        showToast('📳 Signal de vibration transmis');
+        fetch('/api/command', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'vibrate'}) }).catch(()=>{});
+    }
+
+    function bloquerAppareil() {
+        showToast('🔒 Commande de mise en sécurité transmise');
+        fetch('/api/command', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'lock'}) }).catch(()=>{});
+    }
+
+    document.getElementById('client-name').textContent = "{{ nom }}";
+    document.getElementById('client-imei').textContent = "{{ imei }}";
+    document.getElementById('client-model').textContent = "{{ modele|default('Smartphone') }}";
+
+    setInterval(actualiserIntel, REFRESH_INTERVAL);
+    actualiserIntel();
+</script>
 </body>
 </html>
