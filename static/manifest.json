@@ -1,0 +1,22 @@
+{
+  "name": "XOFIX Antivol",
+  "short_name": "XOFIX",
+  "description": "Système de tracking et de protection en temps réel XOFIX",
+  "start_url": "/client",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#e2e8f0",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/static/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,180 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XOFIX ANTIVOL - Terminal de Crise</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #060913;
+            color: #e2e8f0;
+            margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; box-sizing: border-box;
+        }
+        header { text-align: center; margin-bottom: 15px; }
+        h1 {
+            background: linear-gradient(135deg, #d4af37 0%, #f3e5ab 50%, #aa7c11 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin: 0; font-size: 32px; font-weight: 900; letter-spacing: 3px;
+        }
+        .subtitle { color: #94a3b8; font-size: 11px; letter-spacing: 2px; margin-top: 2px; }
+        
+        .dashboard-grid {
+            display: flex; flex-direction: row; gap: 20px;
+            width: 100%; max-width: 1200px; min-height: 550px; height: 75vh; margin-top: 10px;
+        }
+        #map-container {
+            flex: 2; border: 2px solid #aa7c11; border-radius: 12px;
+            overflow: hidden; box-shadow: 0 0 25px rgba(212, 175, 55, 0.1);
+            position: relative; min-height: 500px; /* Force l'affichage vertical */
+        }
+        #map { width: 100%; height: 100%; min-height: 500px; background-color: #0b0f19; }
+        
+        .control-panel {
+            flex: 1; background-color: #0f1424; border: 1px solid #aa7c11;
+            border-radius: 12px; padding: 20px; display: flex; flex-direction: column;
+            justify-content: space-between; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        
+        .widget {
+            background-color: #161f38; border: 1px solid #222f54;
+            border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 15px;
+        }
+        .widget-title { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        .widget-value { font-size: 28px; font-weight: bold; color: #fff; margin-top: 5px; }
+        
+        .status-badge {
+            padding: 8px; border-radius: 6px; font-weight: bold; font-size: 13px;
+            letter-spacing: 1px; text-transform: uppercase; text-align: center;
+        }
+        .status-safe { background-color: rgba(4, 120, 87, 0.2); color: #34d399; border: 1px solid #047857; }
+        .status-alarm { 
+            background-color: rgba(185, 28, 28, 0.3); color: #f87171; border: 1px solid #b91c1c;
+            animation: flash 1s infinite alternate;
+        }
+        
+        @keyframes flash {
+            from { box-shadow: 0 0 4px #b91c1c; }
+            to { box-shadow: 0 0 16px #b91c1c; }
+        }
+
+        .btn-action {
+            background: linear-gradient(135deg, #aa7c11 0%, #d4af37 100%);
+            color: #060913; border: none; padding: 12px; border-radius: 6px;
+            font-weight: bold; cursor: pointer; text-transform: uppercase;
+            letter-spacing: 1px; transition: 0.3s; margin-top: 10px;
+        }
+        .btn-action:hover { transform: scale(1.02); box-shadow: 0 0 15px rgba(212,175,55,0.4); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>XOFIX</h1>
+        <div class="subtitle">POWERED BY LIGHT — MODULE INTERCEPTION LIVE</div>
+    </header>
+
+    <div class="dashboard-grid">
+        <div id="map-container">
+            <div id="map"></div>
+        </div>
+        
+        <div class="control-panel">
+            <div>
+                <div id="main-status" class="status-badge status-safe">
+                    Flux GPS Sécurisé
+                </div>
+                
+                <div class="widget" style="margin-top: 20px;">
+                    <div class="widget-title">Vélocité de la Cible</div>
+                    <div class="widget-value" id="speed-value">0 <span style="font-size: 16px; color:#94a3b8;">km/h</span></div>
+                </div>
+
+                <div class="widget">
+                    <div class="widget-title">Coordonnées Actuelles</div>
+                    <div id="geo-coords" style="font-size: 12px; color: #cbd5e1; margin-top: 8px; font-family: monospace;">
+                        En attente de synchronisation...
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn-action" onclick="declencherAlerte()">Verrouiller l'appareil</button>
+        </div>
+    </div>
+
+    <script>
+        const map = L.map('map').setView([6.1375, 1.2125], 14);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; XOFIX'
+        }).addTo(map);
+
+        // Forcer Leaflet à recalculer sa taille dès l'initialisation
+        setTimeout(() => { map.invalidateSize(); }, 200);
+
+        let marqueurAppareil = null;
+        let ligneTrajet = null;
+
+        function actualiserConsoleXOFIX() {
+            fetch('/api/history')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) return;
+
+                    const lat = data.derniere_position.latitude;
+                    const lon = data.derniere_position.longitude;
+                    const vitesse = data.vitesse_kmh;
+
+                    if (!marqueurAppareil) {
+                        marqueurAppareil = L.marker([lat, lon]).addTo(map)
+                            .bindPopup('<b style="color:#aa7c11;">Cible XOFIX Active</b>').openPopup();
+                    } else {
+                        marqueurAppareil.setLatLng([lat, lon]);
+                    }
+                    map.panTo([lat, lon]);
+
+                    const coordonneesLigne = data.historique_trajet.map(p => [p.latitude, p.longitude]);
+                    
+                    if (!ligneTrajet) {
+                        ligneTrajet = L.polyline(coordonneesLigne, {
+                            color: '#d4af37',
+                            weight: 4,
+                            opacity: 0.9,
+                            lineJoin: 'round'
+                        }).addTo(map);
+                    } else {
+                        ligneTrajet.setLatLngs(coordonneesLigne);
+                    }
+
+                    document.getElementById('speed-value').innerHTML = `${vitesse} <span style="font-size: 16px; color:#94a3b8;">km/h</span>`;
+                    const badge = document.getElementById('main-status');
+                    
+                    if (vitesse > 20) {
+                        badge.innerText = "ALERTE : FUITE EN COURS";
+                        badge.className = "status-badge status-alarm";
+                    } else if (vitesse > 0) {
+                        badge.innerText = "Déplacement suspect (A pied)";
+                        badge.className = "status-badge status-alarm";
+                    } else {
+                        badge.innerText = "Cible Immobile";
+                        badge.className = "status-badge status-safe";
+                    }
+
+                    document.getElementById('geo-coords').innerHTML = `Lat: ${lat}<br>Lon: ${lon}<br>MAJ: ${data.derniere_position.timestamp}`;
+                })
+                .catch(err => console.error("Erreur de flux XOFIX:", err));
+        }
+
+        function declencherAlerte() {
+            alert("🔒 Commande XOFIX envoyée : Écran verrouillé à distance, haut-parleur activé au maximum !");
+        }
+
+        setInterval(actualiserConsoleXOFIX, 3000);
+        actualiserConsoleXOFIX();
+    </script>
+</body>
+</html>
