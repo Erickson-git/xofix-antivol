@@ -1,25 +1,28 @@
-# TODO — finalise l’onboarding zero-touch
+# TODO — XOFIX Antivol (Refonte sécurité + stabilité)
 
-## Backend
-- [x] Ajouter route `GET /client` pour servir `backend/templates/client.html` (corriger PWA start_url).
-- [ ] Ajouter alias `POST /api/update` -> `POST /api/ping` (compatibilité + “puissance” côté client actuel).
-- [ ] Vérifier/renforcer `POST /api/zero-touch` : validation `public_key` + création/lookup stable `device_token`.
+## Render / Entrypoint (B)
+- [x] Vérifier `backend/Procfile` et l’entrypoint gunicorn (app:app vs backend/app.py)
+- [x] Mettre à jour `backend/Procfile` si nécessaire
 
-## Frontend (device client)
-- [x] Mettre à jour `backend/templates/client.html` pour utiliser `POST /api/zero-touch`.
-- [x] Stocker `device_token` dans `localStorage`.
-- [x] Envoyer la télémétrie vers `POST /api/ping` avec header `X-Device-Token`.
-- [x] Retirer l’IMEI hardcodé.
+## Backend hardening (A)
+- [ ] Centraliser la génération de `correlation_id`
+- [ ] Normaliser les validations JSON pour `/api/zero-touch`, `/api/ping`, `/api/event`
+- [ ] Ajouter un check explicite de Content-Type: `application/json`
+- [ ] Améliorer les performances de `/api/ping` (éviter requêtes superflues)
+- [ ] Renforcer contrôle léger des endpoints admin (basé sur les claims JWT, sans ajouter de lourde auth)
 
+## Chiffrement léger (stabilité)
+- [ ] Ajouter HMAC optionnel versionné (header `X-Payload-HMAC`) et clé via env `HMAC_KEY`
+- [ ] Déchiffrage: non (TLS + HMAC d’intégrité/auth seulement)
 
-## Optionnel
-- [x] Mettre à jour `backend/simulateur.py` pour appeler `zero-touch` puis `ping` avec `X-Device-Token`.
-
-
+## Observabilité
+- [ ] Séparer strictement logs d’audit (/backend/logs/) et logs applicatifs
+- [ ] Vérifier que le healthcheck reste rapide et stable (`/api/health`)
 
 ## Validation
-- [ ] Démarrer le backend et tester :
-  - [ ] Ouvrir `/client?public_key=...` (ou `?pk=`) 
-  - [ ] Vérifier création Owner+Device et persistance `device_token`
-  - [ ] Vérifier que `ping` fonctionne et que les commandes sont délivrées.
+- [ ] Lancer le backend et vérifier:
+  - [ ] `GET /api/health`
+  - [ ] `POST /api/zero-touch` (création Owner/Device)
+  - [ ] `POST /api/ping` avec `X-Device-Token`
+- [ ] Contrôler que le front `backend/templates/client.html` reste compatible
 
